@@ -2,10 +2,15 @@
 const ROWS = 5;
 const COLS = 5;
 const DEFAULT_MINE_COUNT = 3;
-const DEFAULT_BET = 1;
+const DEFAULT_BET = 1.00;
+
+// Utility function to round monetary values to 2 decimal places
+function roundMoney(amount) {
+    return Math.round(amount * 100) / 100;
+}
 
 // Game State
-let balance = 100;
+let balance = 100.00;
 let currentBet = DEFAULT_BET;
 let mineCount = DEFAULT_MINE_COUNT;
 let potentialWin = 0;
@@ -55,7 +60,7 @@ function init() {
 function updateBetAmount() {
     const newBet = parseInt(betAmountInput.value);
     if (newBet >= 1 && newBet <= 1000) {
-        currentBet = newBet;
+        currentBet = roundMoney(newBet);
         currentBetDisplay.textContent = `$${currentBet}`;
         updateDisplay(); // Update display to show new potential win
     } else {
@@ -88,7 +93,7 @@ function initGame() {
         return;
     }
     
-    balance -= currentBet;
+    balance = roundMoney(balance - currentBet);
     revealedCount = 0;
     gameActive = true;
     gameEnding = false;
@@ -200,7 +205,6 @@ function handleCellClick(cell, index) {
         
         // Calculate multiplier based on mine count and revealed cells
         const multiplier = calculateMultiplier();
-        potentialWin = Math.floor(currentBet * multiplier);
         updateDisplay();
         
         // Disable this cell
@@ -269,7 +273,7 @@ function gameOver(win) {
     resetBalanceBtn.disabled = false;
     
     if (win) {
-        balance += potentialWin;
+        balance = roundMoney(balance + potentialWin);
         showNotification(`You won $${potentialWin}!`, "success");
         addToHistory(true, potentialWin);
     } else {
@@ -376,14 +380,22 @@ function showNotification(message, type = 'info') {
 
 // Update the display
 function updateDisplay() {
-    balanceDisplay.textContent = `$${balance}`;
-    currentBetDisplay.textContent = `$${currentBet}`;
+    balanceDisplay.textContent = `$${balance.toFixed(2)}`;
+    currentBetDisplay.textContent = `$${currentBet.toFixed(2)}`;
     
     // Calculate and display current multiplier
     const multiplier = calculateMultiplier();
-    multiplierDisplay.textContent = `(${multiplier.toFixed(2)}x)`;
+    const displayMultiplier = parseFloat(multiplier.toFixed(2)); // Round multiplier to 2 decimal places for consistency
+    multiplierDisplay.textContent = `(${displayMultiplier.toFixed(2)}x)`;
     
-    potentialWinDisplay.textContent = `$${potentialWin}`;
+    // Recalculate potential win using the same rounded multiplier that's displayed
+    if (gameActive && revealedCount > 0) {
+        potentialWin = roundMoney(currentBet * displayMultiplier);
+    } else if (!gameActive) {
+        potentialWin = 0;
+    }
+    
+    potentialWinDisplay.textContent = `$${potentialWin.toFixed(2)}`;
 }
 
 // Add CSS animations
@@ -426,7 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
     addAnimations();
     init();
     resetBalanceBtn.addEventListener('click', () => {
-        balance = 100;
+        balance = 100.00;
         updateDisplay();
         showNotification('Balance reset to $100.', 'info');
     });
